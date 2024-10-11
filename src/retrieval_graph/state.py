@@ -21,7 +21,7 @@ these state management operations.
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Annotated, Any, Literal, Optional, Sequence, Union
+from typing import Annotated, Any, Literal, Optional, Sequence, Union, TypedDict
 
 from langchain_core.documents import Document
 from langchain_core.messages import AnyMessage
@@ -159,3 +159,27 @@ class State(InputState):
 
     # Feel free to add additional attributes to your state as needed.
     # Common examples include retrieved documents, extracted entities, API connections, etc.
+
+
+@dataclass(kw_only=True)
+class ResearcherState:
+    sub_question: str
+    queries: list[str] = field(default_factory=list)
+    documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
+
+
+@dataclass(kw_only=True)
+class QueryState:
+    query: str
+
+
+class Router(TypedDict):
+    logic: str
+    type: Literal['more-info', 'langchain', 'general']
+
+
+@dataclass(kw_only=True)
+class AgentState(InputState):
+    router: Router = field(default=None)
+    steps: list[str] = field(default_factory=list)
+    documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
