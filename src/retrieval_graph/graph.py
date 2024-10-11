@@ -156,194 +156,97 @@ from retrieval_graph.utils import format_docs, get_message_text, load_chat_model
 
 # NEW AGENT
 
-
-router_prompt = """You are a LangChain Developer advocate. Your job is help people using the LangChain platform answer any issues they are running into.
-
-A user will come to you with an inquiry. Your first job is to classify what type of inquiry it is. The types of inquiries you should classify it as are:
-
-## `more-info`
-Classify a user inquiry as this if you need more information before you will be able to help them. Examples include:
-- The user complains about an error but doesnt provide the error 
-- The user says something isn't working but doesnt explain why/how it's not working
-
-## `langchain`
-Classify a user inquiry as this if it can be answered by looking up information related to the LangChain open source package. The LangChain open source package \
-is a python SDK for working with LLMs. It integrates with various LLMs, databases and APIs.
-
-## `general`
-Classify a user inquiry as this if it is just a general question"""
-
-
 from retrieval_graph.state import AgentState, Router
 from retrieval_graph.research_agent_graph import graph as researcher
 from typing import Literal, TypedDict
+from retrieval_graph.prompts import ROUTER_SYSTEM_PROMPT, MORE_INFO_PROMPT, GENERAL_PROMPT, GENERATE_QUESTIONS_SYSTEM_PROMPT
 
 
-def route_at_start_node(state: AgentState, config: RunnableConfig):
+def process_query(state: AgentState, config: RunnableConfig):
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.query_model)
-    messages = [{"role": "system", "content": router_prompt}] + state.messages
+    messages = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}] + state.messages
     response = model.with_structured_output(Router).invoke(messages)
     return {"router": response}
 
 
-def route_at_start(state: AgentState) -> Literal["generate_questions", "more_info", "general"]:
+def route_query(state: AgentState) -> Literal["generate_questions", "ask_for_more_info", "respond_to_general_query"]:
     _type = state.router["type"]
     if _type == "langchain":
         return "generate_questions"
     elif _type == "more-info":
-        return "more_info"
+        return "ask_for_more_info"
     elif _type == "general":
-        return "general"
+        return "respond_to_general_query"
     else:
         raise ValueError(f"Unknown router type {_type}")    
 
 
-more_info_prompt = """You are a LangChain Developer advocate. Your job is help people using the LangChain platform answer any issues they are running into.
-
-Your boss has determined that more information is needed before doing any research on behalf of the user. This was their logic:
-
-<logic>
-{logic}
-</logic>
-
-Respond to the user and try to get any more relevant information. Do not overwhelm them!! Be nice, and only ask them a single follow up question."""
-
-
-def more_info(state: AgentState, config: RunnableConfig):
+def ask_for_more_info(state: AgentState, *, config: RunnableConfig):
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.query_model)
-    messages = [{"role": "system", "content": more_info_prompt.format(logic=state.router["logic"])}] + state.messages
+    system_prompt = MORE_INFO_PROMPT.format(logic=state.router["logic"])
+    messages = [{"role": "system", "content": system_prompt}] + state.messages
     response = model.invoke(messages)
     return {"messages": [response]}
 
 
-general_prompt = """You are a LangChain Developer advocate. Your job is help people using the LangChain platform answer any issues they are running into.
-
-Your boss has determined that the user is asking a general question, not one related to the LangGraph platform. This was their logic:
-
-<logic>
-{logic}
-</logic>
-
-Respond to the user. Politely decline to answer and tell them you can only answer questions about LangChain related topics, and that if their question is about LangChain they should clarify how it is.\
-Be nice to them though - they are still a user!"""
-
-
-def general(state: AgentState, config: RunnableConfig):
+def respond_to_general_query(state: AgentState, *, config: RunnableConfig):
     configuration = Configuration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model)
+    model = load_chat_model(configuration.response_model)
+    messages = [{"role": "system", "content": GENERAL_PROMPT.format(logic=state.router["logic"])}] + state.messages
     response = model.invoke(messages)
-    messages = [{"role": "system", "content": general_prompt.format(logic=state.router["logic"])}] + state.messages
     return {"messages": [response]}
 
 
-generate_questions_prompt = """You are a LangChain expert, here to assist with any and all questions or issues with LangChain, LangGraph, LangSmith, or any related functionality. Users may come to you with questions or issues.
+def generate_questions(state: AgentState, *, config: RunnableConfig):
+    class Plan(TypedDict):
+        """Ask research questions."""
+        questions: list[str]
 
-You are world class researcher. Based on the conversation below, generate a plan for how you will research the answer to their question. \
-The plan should generally not be more than 3 steps long, it can be as short as one. The length of the plan depends on the question.
-
-You have access to the following documentation sources:
-- Conceptual docs
-- Integration docs
-- How-to guides
-
-You do not need to specify where you want to research for all steps of the plan, but it's sometimes helpful.
-"""
-
-class Plan(TypedDict):
-    """Ask research questions."""
-    steps: list[str]
-
-
-def generate_questions(state: AgentState, config: RunnableConfig):
     configuration = Configuration.from_runnable_config(config)
-    model = load_chat_model(configuration.query_model)
-    messages = [{"role": "system", "content": generate_questions_prompt}] + state.messages
-    response = model.with_structured_output(Plan).invoke(messages)
-    return {"steps": response["steps"]}
+    model = load_chat_model(configuration.query_model).with_structured_output(Plan)
+    messages = [{"role": "system", "content": GENERATE_QUESTIONS_SYSTEM_PROMPT}] + state.messages
+    response = model.invoke(messages)
+    return {"questions": response["questions"]}
 
 
-def research_node(state: AgentState, config: RunnableConfig):
-    # TODO: fix this logic -- we need to add researcher directly as a node
-    # to enable subgraph rendering in the UI
-    result = researcher.invoke({"sub_question": state.steps[0]})
+def research_node(state: AgentState):
+    result = researcher.invoke({"question": state.questions[0]})
     return {
         "documents": result["documents"],
-        "steps": state.steps[1:]
+        "questions": state.questions[1:]
     }
 
 
-def check_finished(state: AgentState) -> Literal['generate', 'research_node']:
-    if len(state.steps or []) > 0:
+def check_finished(state: AgentState) -> Literal["respond", "research_node"]:
+    if len(state.questions or []) > 0:
         return "research_node"
     else:
-        return "generate"
+        return "respond"
 
 
-def remove_question(state: AgentState):
-    return {"steps": state.steps[1:]}
-
-
-RESPONSE_TEMPLATE = """\
-You are an expert programmer and problem-solver, tasked with answering any question \
-about Langchain.
-
-Generate a comprehensive and informative answer for the \
-given question based solely on the provided search results (URL and content). \
-Do NOT ramble, and adjust your response length based on the question. If they ask \
-a question that can be answered in one sentence, do that. If 5 paragraphs of detail is needed, \
-do that. You must \
-only use information from the provided search results. Use an unbiased and \
-journalistic tone. Combine search results together into a coherent answer. Do not \
-repeat text. Cite search results using [${{number}}] notation. Only cite the most \
-relevant results that answer the question accurately. Place these citations at the end \
-of the individual sentence or paragraph that reference them. \
-Do not put them all at the end, but rather sprinkle them throughout. If \
-different results refer to different entities within the same name, write separate \
-answers for each entity.
-
-You should use bullet points in your answer for readability. Put citations where they apply
-rather than putting them all at the end. DO NOT PUT THEM ALL THAT END, PUT THEM IN THE BULLET POINTS.
-
-If there is nothing in the context relevant to the question at hand, do NOT make up an answer. \
-Rather, tell them why you're unsure and ask for any additional information that may help you answer better.
-
-Sometimes, what a user is asking may NOT be possible. Do NOT tell them that things are possible if you don't \
-see evidence for it in the context below. If you don't see based in the information below that something is possible, \
-do NOT say that it is - instead say that you're not sure.
-
-Anything between the following `context`  html blocks is retrieved from a knowledge \
-bank, not part of the conversation with the user. 
-
-<context>
-    {context} 
-<context/>
-
-"""
-
-def generate(state: AgentState, config: RunnableConfig):
+def respond(state: AgentState, *, config: RunnableConfig):
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.response_model)
     context = format_docs(state.documents)
-    prompt = RESPONSE_TEMPLATE.format(context=context)
+    prompt = configuration.response_system_prompt.format(context=context)
     messages = [{"role": "system", "content": prompt}] + state.messages
     response = model.invoke(messages)
     return {"messages": response}
 
+
 builder = StateGraph(AgentState, input=InputState, output=InputState, config_schema=Configuration)
-builder.add_node(route_at_start_node)
-builder.add_node(more_info)
-builder.add_node(general)
+builder.add_node(process_query)
+builder.add_node(ask_for_more_info)
+builder.add_node(respond_to_general_query)
 builder.add_node(research_node)
 builder.add_node(generate_questions)
-builder.add_node(generate)
+builder.add_node(respond)
 
-builder.add_edge(START, "route_at_start_node")
-builder.add_conditional_edges("route_at_start_node", route_at_start)
+builder.add_edge(START, "process_query")
+builder.add_conditional_edges("process_query", route_query)
 builder.add_edge("generate_questions", "research_node")
 builder.add_conditional_edges("research_node", check_finished)
-builder.add_edge("generate", END)
-builder.add_edge("general", END)
-builder.add_edge("more_info", END)
 graph = builder.compile()
+graph.name = "RetrievalGraph"

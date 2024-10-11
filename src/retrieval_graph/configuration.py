@@ -19,8 +19,6 @@ class IndexConfiguration:
     retriever provider choice, and search parameters.
     """
 
-    user_id: str = field(metadata={"description": "Unique identifier for the user."})
-
     embedding_model: Annotated[
         str,
         {"__template_metadata__": {"kind": "embeddings"}},
@@ -35,7 +33,7 @@ class IndexConfiguration:
         Literal["elastic", "elastic-local", "pinecone", "mongodb"],
         {"__template_metadata__": {"kind": "retriever"}},
     ] = field(
-        default="elastic",
+        default="elastic-local",
         metadata={
             "description": "The vector store provider to use for retrieval. Options are 'elastic', 'pinecone', or 'mongodb'."
         },
@@ -86,12 +84,12 @@ class Configuration(IndexConfiguration):
         },
     )
 
-    query_system_prompt: str = field(
-        default=prompts.QUERY_SYSTEM_PROMPT,
-        metadata={
-            "description": "The system prompt used for processing and refining queries."
-        },
-    )
+    # query_system_prompt: str = field(
+    #     default=prompts.QUERY_SYSTEM_PROMPT,
+    #     metadata={
+    #         "description": "The system prompt used for processing and refining queries."
+    #     },
+    # )
 
     query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
         default="anthropic/claude-3-haiku-20240307",

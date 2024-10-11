@@ -163,7 +163,7 @@ class State(InputState):
 
 @dataclass(kw_only=True)
 class ResearcherState:
-    sub_question: str
+    question: str
     queries: list[str] = field(default_factory=list)
     documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
 
@@ -175,11 +175,11 @@ class QueryState:
 
 class Router(TypedDict):
     logic: str
-    type: Literal['more-info', 'langchain', 'general']
+    type: Literal["more-info", "langchain", "general"]
 
 
 @dataclass(kw_only=True)
 class AgentState(InputState):
     router: Router = field(default=None)
-    steps: list[str] = field(default_factory=list)
+    questions: list[str] = field(default_factory=list)
     documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)

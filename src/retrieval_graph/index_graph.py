@@ -1,34 +1,13 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 
-from typing import Optional, Sequence
+from typing import Optional
 
-from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 
 from retrieval_graph import retrieval
 from retrieval_graph.configuration import IndexConfiguration
 from retrieval_graph.state import IndexState
-
-
-def ensure_docs_have_user_id(
-    docs: Sequence[Document], config: RunnableConfig
-) -> list[Document]:
-    """Ensure that all documents have a user_id in their metadata.
-
-        docs (Sequence[Document]): A sequence of Document objects to process.
-        config (RunnableConfig): A configuration object containing the user_id.
-
-    Returns:
-        list[Document]: A new list of Document objects with updated metadata.
-    """
-    user_id = config["configurable"]["user_id"]
-    return [
-        Document(
-            page_content=doc.page_content, metadata={**doc.metadata, "user_id": user_id}
-        )
-        for doc in docs
-    ]
 
 
 async def index_docs(
@@ -47,9 +26,7 @@ async def index_docs(
     if not config:
         raise ValueError("Configuration required to run index_docs.")
     with retrieval.make_retriever(config) as retriever:
-        stamped_docs = ensure_docs_have_user_id(state.docs, config)
-
-        await retriever.aadd_documents(stamped_docs)
+        await retriever.aadd_documents(state.docs)
     return {"docs": "delete"}
 
 
