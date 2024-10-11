@@ -1,13 +1,14 @@
 """This "graph" simply exposes an endpoint for a user to upload docs to be indexed."""
 
 from typing import Optional
+import json
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 
 from retrieval_graph import retrieval
 from retrieval_graph.configuration import IndexConfiguration
-from retrieval_graph.state import IndexState
+from retrieval_graph.state import IndexState, reduce_docs
 
 
 async def index_docs(
@@ -19,19 +20,29 @@ async def index_docs(
     adds them to the retriever's index, and then signals for the documents to be
     deleted from the state.
 
+    If docs are not provided in the state, they will be loaded
+    from the configuration.docs_file JSON file.
+
     Args:
         state (IndexState): The current state containing documents and retriever.
         config (Optional[RunnableConfig]): Configuration for the indexing process.r
     """
     if not config:
         raise ValueError("Configuration required to run index_docs.")
+
+    configuration = IndexConfiguration.from_runnable_config(config)
+    docs = state.docs
+    if not docs:
+        with open(configuration.docs_file) as f:
+            serialized_docs = json.load(f)
+            docs = reduce_docs([], serialized_docs)
+
     with retrieval.make_retriever(config) as retriever:
-        await retriever.aadd_documents(state.docs)
+        await retriever.aadd_documents(docs)
+
     return {"docs": "delete"}
 
-
 # Define a new graph
-
 
 builder = StateGraph(IndexState, config_schema=IndexConfiguration)
 builder.add_node(index_docs)

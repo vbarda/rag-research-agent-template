@@ -9,6 +9,7 @@ from langchain_core.runnables import RunnableConfig, ensure_config
 
 from retrieval_graph import prompts
 
+DEFAULT_DOCS_FILE = "src/sample_docs.json"
 
 @dataclass(kw_only=True)
 class IndexConfiguration:
@@ -19,6 +20,12 @@ class IndexConfiguration:
     retriever provider choice, and search parameters.
     """
 
+    docs_file: str = field(
+        default=DEFAULT_DOCS_FILE,
+        metadata={
+            "description": "Path to a JSON file containing default documents to index."
+        },
+    )
     embedding_model: Annotated[
         str,
         {"__template_metadata__": {"kind": "embeddings"}},
@@ -30,7 +37,7 @@ class IndexConfiguration:
     )
 
     retriever_provider: Annotated[
-        Literal["elastic", "elastic-local", "pinecone", "mongodb"],
+        Literal["elastic-local", "elastic", "pinecone", "mongodb"],
         {"__template_metadata__": {"kind": "retriever"}},
     ] = field(
         default="elastic-local",

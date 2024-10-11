@@ -4,8 +4,8 @@ This module contains utility functions for handling messages, documents,
 and other common operations in project.
 
 Functions:
-    get_message_text: Extract text content from various message formats.
     format_docs: Convert documents to an xml-formatted string.
+    load_chat_model: Load a chat model from a model name.
 """
 
 from typing import Optional
@@ -13,37 +13,6 @@ from typing import Optional
 from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AnyMessage
-
-
-def get_message_text(msg: AnyMessage) -> str:
-    """Get the text content of a message.
-
-    This function extracts the text content from various message formats.
-
-    Args:
-        msg (AnyMessage): The message object to extract text from.
-
-    Returns:
-        str: The extracted text content of the message.
-
-    Examples:
-        >>> from langchain_core.messages import HumanMessage
-        >>> get_message_text(HumanMessage(content="Hello"))
-        'Hello'
-        >>> get_message_text(HumanMessage(content={"text": "World"}))
-        'World'
-        >>> get_message_text(HumanMessage(content=[{"text": "Hello"}, " ", {"text": "World"}]))
-        'Hello World'
-    """
-    content = msg.content
-    if isinstance(content, str):
-        return content
-    elif isinstance(content, dict):
-        return content.get("text", "")
-    else:
-        txts = [c if isinstance(c, str) else (c.get("text") or "") for c in content]
-        return "".join(txts).strip()
 
 
 def _format_doc(doc: Document) -> str:
