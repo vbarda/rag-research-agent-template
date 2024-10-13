@@ -1,5 +1,5 @@
-from retrieval_graph.configuration import Configuration
+from retrieval_graph.configuration import AgentConfiguration
 
 
 def test_configuration_from_none() -> None:
-    Configuration.from_runnable_config({"user_id": "foo"})
+    AgentConfiguration.from_runnable_config({"user_id": "foo"})

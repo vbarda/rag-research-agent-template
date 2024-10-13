@@ -86,6 +86,6 @@ class Router(TypedDict):
 @dataclass(kw_only=True)
 class AgentState(InputState):
     router: Router = field(default=None)
-    questions: list[str] = field(default_factory=list)
+    steps: list[str] = field(default_factory=list)
     documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
     """Populated by the retriever. This is a list of documents that the agent can reference."""

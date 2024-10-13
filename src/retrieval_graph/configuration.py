@@ -10,12 +10,16 @@ from shared.configuration import BaseConfiguration
 
 
 @dataclass(kw_only=True)
-class Configuration(BaseConfiguration):
+class AgentConfiguration(BaseConfiguration):
     """The configuration for the agent."""
 
-    response_system_prompt: str = field(
-        default=prompts.RESPONSE_SYSTEM_PROMPT,
-        metadata={"description": "The system prompt used for generating responses."},
+    # models
+
+    query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
+        default="anthropic/claude-3-haiku-20240307",
+        metadata={
+            "description": "The language model used for processing and refining queries. Should be in the form: provider/model-name."
+        },
     )
 
     response_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
@@ -25,16 +29,29 @@ class Configuration(BaseConfiguration):
         },
     )
 
-    # query_system_prompt: str = field(
-    #     default=prompts.QUERY_SYSTEM_PROMPT,
-    #     metadata={
-    #         "description": "The system prompt used for processing and refining queries."
-    #     },
-    # )
+    # prompts
 
-    query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="anthropic/claude-3-haiku-20240307",
-        metadata={
-            "description": "The language model used for processing and refining queries. Should be in the form: provider/model-name."
-        },
+    router_system_prompt: str = field(
+        default=prompts.ROUTER_SYSTEM_PROMPT,
+        metadata={"description": "The system prompt used for classifying user questions to route them to the correct node."},
+    )
+
+    more_info_system_prompt: str = field(
+        default=prompts.MORE_INFO_SYSTEM_PROMPT,
+        metadata={"description": "The system prompt used for asking for more information from the user."},
+    )
+
+    general_system_prompt: str = field(
+        default=prompts.GENERAL_SYSTEM_PROMPT,
+        metadata={"description": "The system prompt used for responding to general questions."},
+    )
+
+    research_plan_system_prompt: str = field(
+        default=prompts.RESEARCH_PLAN_SYSTEM_PROMPT,
+        metadata={"description": "The system prompt used for generating a research plan based on the user's question."},
+    )
+
+    response_system_prompt: str = field(
+        default=prompts.RESPONSE_SYSTEM_PROMPT,
+        metadata={"description": "The system prompt used for generating responses."},
     )
