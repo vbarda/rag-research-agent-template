@@ -1,7 +1,4 @@
-"""Utility functions for the retrieval graph.
-
-This module contains utility functions for handling messages, documents,
-and other common operations in project.
+"""Shared utility functions used in the project.
 
 Functions:
     format_docs: Convert documents to an xml-formatted string.

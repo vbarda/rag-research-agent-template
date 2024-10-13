@@ -19,69 +19,14 @@ The module also includes type definitions and utility functions to support
 these state management operations.
 """
 
-import uuid
 from dataclasses import dataclass, field
-from typing import Annotated, Any, Literal, Optional, Sequence, Union, TypedDict
+from typing import Annotated, Literal, Sequence, TypedDict
 
 from langchain_core.documents import Document
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 
-############################  Doc Indexing State  #############################
-
-
-def reduce_docs(
-    existing: Optional[Sequence[Document]],
-    new: Union[
-        Sequence[Document],
-        Sequence[dict[str, Any]],
-        Sequence[str],
-        str,
-        Literal["delete"],
-    ],
-) -> Sequence[Document]:
-    """Reduce and process documents based on the input type.
-
-    This function handles various input types and converts them into a sequence of Document objects.
-    It can delete existing documents, create new ones from strings or dictionaries, or return the existing documents.
-
-    Args:
-        existing (Optional[Sequence[Document]]): The existing docs in the state, if any.
-        new (Union[Sequence[Document], Sequence[dict[str, Any]], Sequence[str], str, Literal["delete"]]):
-            The new input to process. Can be a sequence of Documents, dictionaries, strings, a single string,
-            or the literal "delete".
-    """
-    if new == "delete":
-        return []
-    if isinstance(new, str):
-        return [Document(page_content=new, metadata={"id": str(uuid.uuid4())})]
-    if isinstance(new, list):
-        coerced = []
-        for item in new:
-            if isinstance(item, str):
-                coerced.append(
-                    Document(page_content=item, metadata={"id": str(uuid.uuid4())})
-                )
-            elif isinstance(item, dict):
-                coerced.append(Document(**item))
-            else:
-                coerced.append(item)
-        return coerced
-    return existing or []
-
-
-# The index state defines the simple IO for the single-node index graph
-@dataclass(kw_only=True)
-class IndexState:
-    """Represents the state for document indexing and retrieval.
-
-    This class defines the structure of the index state, which includes
-    the documents to be indexed and the retriever used for searching
-    these documents.
-    """
-
-    docs: Annotated[Sequence[Document], reduce_docs]
-    """A list of documents that the agent can index."""
+from shared.state import reduce_docs
 
 
 #############################  Agent State  ###################################
@@ -133,46 +78,6 @@ class InputState:
 
 # This is the primary state of your agent, where you can store any information
 
-
-def add_queries(existing: Sequence[str], new: Sequence[str]) -> Sequence[str]:
-    """Combine existing queries with new queries.
-
-    Args:
-        existing (Sequence[str]): The current list of queries in the state.
-        new (Sequence[str]): The new queries to be added.
-
-    Returns:
-        Sequence[str]: A new list containing all queries from both input sequences.
-    """
-    return list(existing) + list(new)
-
-
-@dataclass(kw_only=True)
-class State(InputState):
-    """The state of your graph / agent."""
-
-    queries: Annotated[list[str], add_queries] = field(default_factory=list)
-    """A list of search queries that the agent has generated."""
-
-    retrieved_docs: list[Document] = field(default_factory=list)
-    """Populated by the retriever. This is a list of documents that the agent can reference."""
-
-    # Feel free to add additional attributes to your state as needed.
-    # Common examples include retrieved documents, extracted entities, API connections, etc.
-
-
-@dataclass(kw_only=True)
-class ResearcherState:
-    question: str
-    queries: list[str] = field(default_factory=list)
-    documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
-
-
-@dataclass(kw_only=True)
-class QueryState:
-    query: str
-
-
 class Router(TypedDict):
     logic: str
     type: Literal["more-info", "langchain", "general"]
@@ -183,3 +88,4 @@ class AgentState(InputState):
     router: Router = field(default=None)
     questions: list[str] = field(default_factory=list)
     documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
+    """Populated by the retriever. This is a list of documents that the agent can reference."""

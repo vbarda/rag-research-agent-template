@@ -83,10 +83,3 @@ bank, not part of the conversation with the user.
 <context>
     {context}
 <context/>"""
-
-# Researcher graph
-
-GENERATE_QUERIES_PROMPT = """\
-Generate 3 search queries to search for to answer the user's question. \
-These search queries should be diverse in nature - do not generate \
-repetitive ones."""

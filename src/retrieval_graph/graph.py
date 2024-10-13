@@ -12,9 +12,9 @@ from langgraph.graph import StateGraph, START
 
 from retrieval_graph.configuration import Configuration
 from retrieval_graph.prompts import ROUTER_SYSTEM_PROMPT, MORE_INFO_PROMPT, GENERAL_PROMPT, GENERATE_QUESTIONS_SYSTEM_PROMPT
-from retrieval_graph.research_agent_graph import graph as researcher
+from retrieval_graph.researcher_graph.graph import graph as researcher
 from retrieval_graph.state import AgentState, InputState, Router
-from retrieval_graph.utils import format_docs, load_chat_model
+from shared.utils import format_docs, load_chat_model
 
 
 def analyze_and_route_query(state: AgentState, config: RunnableConfig) -> dict[str, list[str]]:

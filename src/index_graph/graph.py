@@ -6,9 +6,9 @@ import json
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 
-from retrieval_graph import retrieval
-from retrieval_graph.configuration import IndexConfiguration
-from retrieval_graph.state import IndexState, reduce_docs
+from index_graph.configuration import IndexConfiguration
+from index_graph.state import IndexState, reduce_docs
+from shared import retrieval
 
 
 async def index_docs(

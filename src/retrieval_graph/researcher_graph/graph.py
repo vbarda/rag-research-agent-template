@@ -5,11 +5,15 @@ from langchain_core.documents import Document
 from langgraph.graph import START, END, StateGraph
 from langgraph.types import Send
 
-from retrieval_graph.state import ResearcherState, QueryState
 from retrieval_graph.configuration import Configuration
-from retrieval_graph.utils import load_chat_model
-from retrieval_graph.prompts import GENERATE_QUERIES_PROMPT
-from retrieval_graph import retrieval
+from retrieval_graph.researcher_graph.state import ResearcherState, QueryState
+from shared import retrieval
+from shared.utils import load_chat_model
+
+GENERATE_QUERIES_PROMPT = """\
+Generate 3 search queries to search for to answer the user's question. \
+These search queries should be diverse in nature - do not generate \
+repetitive ones."""
 
 
 def generate_queries(state: ResearcherState, *, config: RunnableConfig) -> dict[str, list[str]]:
