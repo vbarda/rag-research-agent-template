@@ -33,22 +33,30 @@ class AgentConfiguration(BaseConfiguration):
 
     router_system_prompt: str = field(
         default=prompts.ROUTER_SYSTEM_PROMPT,
-        metadata={"description": "The system prompt used for classifying user questions to route them to the correct node."},
+        metadata={
+            "description": "The system prompt used for classifying user questions to route them to the correct node."
+        },
     )
 
     more_info_system_prompt: str = field(
         default=prompts.MORE_INFO_SYSTEM_PROMPT,
-        metadata={"description": "The system prompt used for asking for more information from the user."},
+        metadata={
+            "description": "The system prompt used for asking for more information from the user."
+        },
     )
 
     general_system_prompt: str = field(
         default=prompts.GENERAL_SYSTEM_PROMPT,
-        metadata={"description": "The system prompt used for responding to general questions."},
+        metadata={
+            "description": "The system prompt used for responding to general questions."
+        },
     )
 
     research_plan_system_prompt: str = field(
         default=prompts.RESEARCH_PLAN_SYSTEM_PROMPT,
-        metadata={"description": "The system prompt used for generating a research plan based on the user's question."},
+        metadata={
+            "description": "The system prompt used for generating a research plan based on the user's question."
+        },
     )
 
     response_system_prompt: str = field(

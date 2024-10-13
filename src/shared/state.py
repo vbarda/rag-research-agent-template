@@ -1,19 +1,21 @@
+"""Shared functions for state management."""
+
 import uuid
-from typing import Any, Literal, Optional, Sequence, Union
+from typing import Any, Literal, Optional, Union
 
 from langchain_core.documents import Document
 
 
 def reduce_docs(
-    existing: Optional[Sequence[Document]],
+    existing: Optional[list[Document]],
     new: Union[
-        Sequence[Document],
-        Sequence[dict[str, Any]],
-        Sequence[str],
+        list[Document],
+        list[dict[str, Any]],
+        list[str],
         str,
         Literal["delete"],
     ],
-) -> Sequence[Document]:
+) -> list[Document]:
     """Reduce and process documents based on the input type.
 
     This function handles various input types and converts them into a sequence of Document objects.

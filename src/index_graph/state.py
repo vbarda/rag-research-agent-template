@@ -1,25 +1,11 @@
-"""State management for the index graph.
-
-This module defines the state structures and reduction functions used in the
-index graph. It includes definitions for document indexing.
-
-Classes:
-    IndexState: Represents the state for document indexing operations.
-
-Functions:
-    reduce_docs: Processes and reduces document inputs into a sequence of Documents.
-
-The module also includes type definitions and utility functions to support
-these state management operations.
-"""
+"""State management for the index graph."""
 
 from dataclasses import dataclass
-from typing import Annotated, Sequence
+from typing import Annotated
 
 from langchain_core.documents import Document
-from shared.state import reduce_docs
 
-############################  Doc Indexing State  #############################
+from shared.state import reduce_docs
 
 
 # The index state defines the simple IO for the single-node index graph
@@ -32,5 +18,5 @@ class IndexState:
     these documents.
     """
 
-    docs: Annotated[Sequence[Document], reduce_docs]
+    docs: Annotated[list[Document], reduce_docs]
     """A list of documents that the agent can index."""

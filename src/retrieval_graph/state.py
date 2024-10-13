@@ -1,35 +1,17 @@
 """State management for the retrieval graph.
 
-This module defines the state structures and reduction functions used in the
-retrieval graph. It includes definitions for document indexing, retrieval,
-and conversation management.
-
-Classes:
-    IndexState: Represents the state for document indexing operations.
-    RetrievalState: Represents the state for document retrieval operations.
-    ConversationState: Represents the state of the ongoing conversation.
-
-Functions:
-    reduce_docs: Processes and reduces document inputs into a sequence of Documents.
-    reduce_retriever: Updates the retriever in the state.
-    reduce_messages: Manages the addition of new messages to the conversation state.
-    reduce_retrieved_docs: Handles the updating of retrieved documents in the state.
-
-The module also includes type definitions and utility functions to support
-these state management operations.
+This module defines the state structures used in the retrieval graph. It includes
+definitions for agent state, input state, and router classification schema.
 """
 
 from dataclasses import dataclass, field
-from typing import Annotated, Literal, Sequence, TypedDict
+from typing import Annotated, Literal, TypedDict
 
 from langchain_core.documents import Document
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 
 from shared.state import reduce_docs
-
-
-#############################  Agent State  ###################################
 
 
 # Optional, the InputState is a restricted version of the State that is used to
@@ -45,7 +27,7 @@ class InputState:
     to the outside world compared to what is maintained internally.
     """
 
-    messages: Annotated[Sequence[AnyMessage], add_messages]
+    messages: Annotated[list[AnyMessage], add_messages]
     """Messages track the primary execution state of the agent.
 
     Typically accumulates a pattern of Human/AI/Human/AI messages; if
@@ -76,16 +58,26 @@ class InputState:
         message from `right` will replace the message from `left`."""
 
 
-# This is the primary state of your agent, where you can store any information
-
 class Router(TypedDict):
+    """Classify user query."""
+
     logic: str
     type: Literal["more-info", "langchain", "general"]
 
 
+# This is the primary state of your agent, where you can store any information
+
+
 @dataclass(kw_only=True)
 class AgentState(InputState):
-    router: Router = field(default=None)
+    """State of the retrieval graph / agent."""
+
+    router: Router = field(default_factory=lambda: Router(type="general", logic=""))
+    """The router's classification of the user's query."""
     steps: list[str] = field(default_factory=list)
+    """A list of steps in the research plan."""
     documents: Annotated[list[Document], reduce_docs] = field(default_factory=list)
     """Populated by the retriever. This is a list of documents that the agent can reference."""
+
+    # Feel free to add additional attributes to your state as needed.
+    # Common examples include retrieved documents, extracted entities, API connections, etc.
