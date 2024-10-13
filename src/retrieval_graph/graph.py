@@ -6,31 +6,18 @@ and key functions for processing user inputs, generating queries, retrieving
 relevant documents, and formulating responses.
 """
 
-from datetime import datetime, timezone
-from typing import cast
-
-from langchain_core.documents import Document
-from langchain_core.messages import BaseMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel
+from typing import Literal, TypedDict
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START
 
-from retrieval_graph import retrieval
 from retrieval_graph.configuration import Configuration
-from retrieval_graph.state import InputState, State
+from retrieval_graph.prompts import ROUTER_SYSTEM_PROMPT, MORE_INFO_PROMPT, GENERAL_PROMPT, GENERATE_QUESTIONS_SYSTEM_PROMPT
+from retrieval_graph.research_agent_graph import graph as researcher
+from retrieval_graph.state import AgentState, InputState, Router
 from retrieval_graph.utils import format_docs, load_chat_model
 
 
-# NEW AGENT
-
-from retrieval_graph.state import AgentState, Router
-from retrieval_graph.research_agent_graph import graph as researcher
-from typing import Literal, TypedDict
-from retrieval_graph.prompts import ROUTER_SYSTEM_PROMPT, MORE_INFO_PROMPT, GENERAL_PROMPT, GENERATE_QUESTIONS_SYSTEM_PROMPT
-
-
-def process_query(state: AgentState, config: RunnableConfig):
+def analyze_and_route_query(state: AgentState, config: RunnableConfig) -> dict[str, list[str]]:
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.query_model)
     messages = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}] + state.messages
@@ -50,7 +37,7 @@ def route_query(state: AgentState) -> Literal["generate_questions", "ask_for_mor
         raise ValueError(f"Unknown router type {_type}")    
 
 
-def ask_for_more_info(state: AgentState, *, config: RunnableConfig):
+def ask_for_more_info(state: AgentState, *, config: RunnableConfig) -> dict[str, list[str]]:
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.query_model)
     system_prompt = MORE_INFO_PROMPT.format(logic=state.router["logic"])
@@ -59,7 +46,7 @@ def ask_for_more_info(state: AgentState, *, config: RunnableConfig):
     return {"messages": [response]}
 
 
-def respond_to_general_query(state: AgentState, *, config: RunnableConfig):
+def respond_to_general_query(state: AgentState, *, config: RunnableConfig) -> dict[str, list[str]]:
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.response_model)
     messages = [{"role": "system", "content": GENERAL_PROMPT.format(logic=state.router["logic"])}] + state.messages
@@ -67,7 +54,7 @@ def respond_to_general_query(state: AgentState, *, config: RunnableConfig):
     return {"messages": [response]}
 
 
-def generate_questions(state: AgentState, *, config: RunnableConfig):
+def generate_questions(state: AgentState, *, config: RunnableConfig) -> dict[str, list[str]]:
     class Plan(TypedDict):
         """Ask research questions."""
         questions: list[str]
@@ -79,7 +66,7 @@ def generate_questions(state: AgentState, *, config: RunnableConfig):
     return {"questions": response["questions"]}
 
 
-def research_node(state: AgentState):
+def research_node(state: AgentState) -> dict[str, list[str]]:
     result = researcher.invoke({"question": state.questions[0]})
     return {
         "documents": result["documents"],
@@ -94,7 +81,7 @@ def check_finished(state: AgentState) -> Literal["respond", "research_node"]:
         return "respond"
 
 
-def respond(state: AgentState, *, config: RunnableConfig):
+def respond(state: AgentState, *, config: RunnableConfig) -> dict[str, list[str]]:
     configuration = Configuration.from_runnable_config(config)
     model = load_chat_model(configuration.response_model)
     context = format_docs(state.documents)
@@ -105,15 +92,15 @@ def respond(state: AgentState, *, config: RunnableConfig):
 
 
 builder = StateGraph(AgentState, input=InputState, output=InputState, config_schema=Configuration)
-builder.add_node(process_query)
+builder.add_node(analyze_and_route_query)
 builder.add_node(ask_for_more_info)
 builder.add_node(respond_to_general_query)
 builder.add_node(research_node)
 builder.add_node(generate_questions)
 builder.add_node(respond)
 
-builder.add_edge(START, "process_query")
-builder.add_conditional_edges("process_query", route_query)
+builder.add_edge(START, "analyze_and_route_query")
+builder.add_conditional_edges("analyze_and_route_query", route_query)
 builder.add_edge("generate_questions", "research_node")
 builder.add_conditional_edges("research_node", check_finished)
 graph = builder.compile()
