@@ -16,11 +16,6 @@ from retrieval_graph.researcher_graph.state import QueryState, ResearcherState
 from shared import retrieval
 from shared.utils import load_chat_model
 
-GENERATE_QUERIES_PROMPT = """\
-Generate 3 search queries to search for to answer the user's question. \
-These search queries should be diverse in nature - do not generate \
-repetitive ones."""
-
 
 async def generate_queries(
     state: ResearcherState, *, config: RunnableConfig
@@ -43,7 +38,7 @@ async def generate_queries(
     configuration = AgentConfiguration.from_runnable_config(config)
     model = load_chat_model(configuration.query_model).with_structured_output(Response)
     messages = [
-        {"role": "system", "content": GENERATE_QUERIES_PROMPT},
+        {"role": "system", "content": configuration.generate_queries_system_prompt},
         {"role": "human", "content": state.question},
     ]
     response = cast(Response, await model.ainvoke(messages))

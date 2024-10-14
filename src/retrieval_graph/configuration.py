@@ -59,6 +59,13 @@ class AgentConfiguration(BaseConfiguration):
         },
     )
 
+    generate_queries_system_prompt: str = field(
+        default=prompts.GENERATE_QUERIES_SYSTEM_PROMPT,
+        metadata={
+            "description": "The system prompt used by the researcher to generate queries based on a step in the research plan."
+        },
+    )
+
     response_system_prompt: str = field(
         default=prompts.RESPONSE_SYSTEM_PROMPT,
         metadata={"description": "The system prompt used for generating responses."},

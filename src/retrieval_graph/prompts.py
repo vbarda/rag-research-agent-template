@@ -1,5 +1,7 @@
 """Default prompts."""
 
+# Retrieval graph
+
 ROUTER_SYSTEM_PROMPT = """You are a LangChain Developer advocate. Your job is help people using LangChain answer any issues they are running into.
 
 A user will come to you with an inquiry. Your first job is to classify what type of inquiry it is. The types of inquiries you should classify it as are:
@@ -83,3 +85,10 @@ bank, not part of the conversation with the user.
 <context>
     {context}
 <context/>"""
+
+# Researcher graph
+
+GENERATE_QUERIES_SYSTEM_PROMPT = """\
+Generate 3 search queries to search for to answer the user's question. \
+These search queries should be diverse in nature - do not generate \
+repetitive ones."""
