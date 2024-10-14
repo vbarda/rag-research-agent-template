@@ -10,7 +10,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import START, StateGraph
+from langgraph.graph import END, START, StateGraph
 
 from retrieval_graph.configuration import AgentConfiguration
 from retrieval_graph.researcher_graph.graph import graph as researcher_graph
@@ -219,6 +219,9 @@ builder.add_edge(START, "analyze_and_route_query")
 builder.add_conditional_edges("analyze_and_route_query", route_query)
 builder.add_edge("create_research_plan", "conduct_research")
 builder.add_conditional_edges("conduct_research", check_finished)
+builder.add_edge("ask_for_more_info", END)
+builder.add_edge("respond_to_general_query", END)
+builder.add_edge("respond", END)
 
 # Compile into a graph object that you can invoke and deploy.
 graph = builder.compile()

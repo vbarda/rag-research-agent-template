@@ -4,7 +4,7 @@ import json
 from typing import Optional
 
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import START, StateGraph
+from langgraph.graph import END, START, StateGraph
 
 from index_graph.configuration import IndexConfiguration
 from index_graph.state import IndexState
@@ -48,6 +48,7 @@ async def index_docs(
 builder = StateGraph(IndexState, config_schema=IndexConfiguration)
 builder.add_node(index_docs)
 builder.add_edge(START, "index_docs")
+builder.add_edge("index_docs", END)
 # Compile into a graph object that you can invoke and deploy.
 graph = builder.compile()
 graph.name = "IndexGraph"
